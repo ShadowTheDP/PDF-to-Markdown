@@ -5,115 +5,61 @@ PDF Content Inspector & Markdown Converter
 此腳本用於讀取 PDF 的完整內容（文字、圖片、表格、公式）並轉換為 Markdown 格式。
 支援多頁處理、圖片 Base64 嵌入，並儘可能保留原始頁面結構。
 
-Markdown 結構說明：
-------------------
-- `# Page {n}` : 頁碼標記
-- `## Paragraphs` : 提取的文字段落
-- `![image](data:image/png;base64,...)` : 嵌入的圖片（Base64 格式）
-- `Table:` : 以 Markdown 表格格式呈現的資料
-- `Formula/Text Blocks` : 包含數學公式或特殊排版的文字塊
-
 依賴庫：
 -------
 - PyMuPDF (fitz): 用於文字與圖片提取
-- pdfplumber: 用於表格提取
+- pymupdf4llm: 用於高品質的 Markdown 轉換
 - base64: 用於圖片編碼
 """
 
-import fitz  # PyMuPDF
-import pdfplumber
-import base64
 import os
-import io
-from PIL import Image
+import pymupdf4llm
+import pathlib
 
-# 目標 PDF 路徑
-pdf_path = r"C:\Users\user\Desktop\Python\python source\IAIO training\part5_information theory.pdf"
-
-def get_image_base64(pix):
-    """將 PyMuPDF 的 pixmap 轉換為 Base64 字串"""
-    img_data = pix.tobytes("png")
-    return base64.b64encode(img_data).decode('utf-8')
-
-def extract_tables(pdf_path, page_index):
-    """使用 pdfplumber 提取指定頁面的表格"""
-    tables_md = ""
-    with pdfplumber.open(pdf_path) as pdf:
-        page = pdf.pages[page_index]
-        tables = page.extract_tables()
-        for table in tables:
-            if not table: continue
-            tables_md += "\n### Table:\n"
-            # 轉換為 Markdown 表格格式
-            for i, row in enumerate(table):
-                # 過濾 None 並轉換為字串
-                row = [str(cell).replace('\n', ' ') if cell is not None else "" for cell in row]
-                tables_md += "| " + " | ".join(row) + " |\n"
-                if i == 0: # 添加分隔線
-                    tables_md += "| " + " | ".join(["---"] * len(row)) + " |\n"
-            tables_md += "\n"
-    return tables_md
-
-def inspect_pdf_to_markdown(path):
-    """核心功能：解析 PDF 並生成 Markdown"""
-    if not os.path.exists(path):
-        print(f"錯誤：找不到檔案 {path}")
+def convert_pdf_to_markdown(pdf_path, output_dir):
+    """
+    使用 pymupdf4llm 將 PDF 轉換為 Markdown 並保存到指定目錄
+    """
+    if not os.path.exists(pdf_path):
+        print(f"錯誤：找不到檔案 {pdf_path}")
         return
 
-    doc = fitz.open(path)
-    output_md_path = os.path.splitext(path)[0] + "_content.md"
-    # 若權限受限，改存在當前目錄
-    try:
-        md_file = open(output_md_path, "w", encoding="utf-8")
-    except:
-        output_md_path = "extracted_content.md"
-        md_file = open(output_md_path, "w", encoding="utf-8")
-
-    print(f"正在處理 PDF: {path}")
-    print(f"總頁數: {len(doc)}")
+    file_name = pathlib.Path(pdf_path).stem
+    output_path = os.path.join(output_dir, f"{file_name}.md")
     
-    md_file.write(f"# PDF Content Extraction: {os.path.basename(path)}\n\n")
-
-    for page_index in range(len(doc)):
-        page = doc[page_index]
-        print(f"正在處理第 {page_index + 1} 頁...")
+    print(f"正在處理 PDF: {pdf_path}")
+    
+    try:
+        # 使用 pymupdf4llm 進行轉換，這會自動處理表格和圖片嵌入
+        md_text = pymupdf4llm.to_markdown(pdf_path, embed_images=True)
         
-        md_file.write(f"\n---\n# Page {page_index + 1}\n\n")
+        # 確保輸出目錄存在
+        os.makedirs(output_dir, exist_ok=True)
         
-        # 1. 提取文字段落
-        md_file.write("## Paragraphs\n")
-        text = page.get_text("text")
-        # 清除不合法的 Unicode 字符
-        clean_text = text.encode('utf-8', 'ignore').decode('utf-8')
-        md_file.write(clean_text + "\n\n")
-        
-        # 2. 提取表格 (使用 pdfplumber)
-        try:
-            tables_content = extract_tables(path, page_index)
-            if tables_content:
-                md_file.write(tables_content)
-        except Exception as e:
-            print(f"第 {page_index+1} 頁表格提取失敗: {e}")
-
-        # 3. 提取圖片
-        image_list = page.get_images(full=True)
-        if image_list:
-            md_file.write("## Images\n")
-            for img_index, img in enumerate(image_list):
-                xref = img[0]
-                pix = fitz.Pixmap(doc, xref)
-                
-                # 如果是 CMYK 等特殊格式，先轉換為 RGB
-                if pix.n - pix.alpha > 3:
-                    pix = fitz.Pixmap(fitz.csRGB, pix)
-                
-                base64_str = get_image_base64(pix)
-                md_file.write(f"![image_{page_index+1}_{img_index}](data:image/png;base64,{base64_str})\n\n")
-                pix = None # 釋放內存
-
-    md_file.close()
-    doc.close()
-    print(f"\n完成！內容已保存至: {output_md_path}")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(md_text)
+            
+        print(f"成功將 {pdf_path} 轉換為 {output_path}")
+        return True
+    except Exception as e:
+        print(f"處理 {pdf_path} 時發生錯誤: {e}")
+        return False
 
 if __name__ == "__main__":
-    inspect_pdf_to_markdown(pdf_path)
+    # 定義輸入與輸出
+    input_dir = r"C:\Users\user\Desktop\Python\python source\IAIO training"
+    output_root = r"C:\Users\user\Desktop\Python\Result for project\PDF to Markdown"
+    
+    # 確保輸出根目錄存在
+    os.makedirs(output_root, exist_ok=True)
+    
+    # 獲取所有 PDF
+    pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
+    
+    success_count = 0
+    for pdf_file in pdf_files:
+        full_path = os.path.join(input_dir, pdf_file)
+        if convert_pdf_to_markdown(full_path, output_root):
+            success_count += 1
+            
+    print(f"\n處理完成！成功轉換 {success_count}/{len(pdf_files)} 個檔案。")
