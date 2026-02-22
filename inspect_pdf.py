@@ -10,11 +10,17 @@ PDF Content Inspector & Markdown Converter
 - PyMuPDF (fitz): 用於文字與圖片提取
 - pymupdf4llm: 用於高品質的 Markdown 轉換
 - base64: 用於圖片編碼
+
+使用方法：
+---------
+python inspect_pdf.py <input_pdf_path> <output_directory>
 """
 
 import os
-import pymupdf4llm
+import sys
+import argparse
 import pathlib
+import pymupdf4llm
 
 def convert_pdf_to_markdown(pdf_path, output_dir):
     """
@@ -22,19 +28,21 @@ def convert_pdf_to_markdown(pdf_path, output_dir):
     """
     if not os.path.exists(pdf_path):
         print(f"錯誤：找不到檔案 {pdf_path}")
-        return
+        return False
 
     file_name = pathlib.Path(pdf_path).stem
     output_path = os.path.join(output_dir, f"{file_name}.md")
     
     print(f"正在處理 PDF: {pdf_path}")
+    print(f"輸出目錄: {output_dir}")
     
     try:
-        # 使用 pymupdf4llm 進行轉換，這會自動處理表格和圖片嵌入
-        md_text = pymupdf4llm.to_markdown(pdf_path, embed_images=True)
-        
         # 確保輸出目錄存在
         os.makedirs(output_dir, exist_ok=True)
+
+        # 使用 pymupdf4llm 進行轉換，這會自動處理表格和圖片嵌入
+        # embed_images=True 會將圖片轉換為 Base64 嵌入到 Markdown 中
+        md_text = pymupdf4llm.to_markdown(pdf_path, embed_images=True)
         
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(md_text)
@@ -43,23 +51,23 @@ def convert_pdf_to_markdown(pdf_path, output_dir):
         return True
     except Exception as e:
         print(f"處理 {pdf_path} 時發生錯誤: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
+def main():
+    parser = argparse.ArgumentParser(description="Convert PDF to Markdown with embedded images and tables.")
+    parser.add_argument("input_pdf", help="Path to the input PDF file.")
+    parser.add_argument("output_dir", help="Directory to save the output Markdown file.")
+    
+    args = parser.parse_args()
+    
+    success = convert_pdf_to_markdown(args.input_pdf, args.output_dir)
+    
+    if success:
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
 if __name__ == "__main__":
-    # 定義輸入與輸出
-    input_dir = r"C:\Users\user\Desktop\Python\python source\IAIO training"
-    output_root = r"C:\Users\user\Desktop\Python\Result for project\PDF to Markdown"
-    
-    # 確保輸出根目錄存在
-    os.makedirs(output_root, exist_ok=True)
-    
-    # 獲取所有 PDF
-    pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
-    
-    success_count = 0
-    for pdf_file in pdf_files:
-        full_path = os.path.join(input_dir, pdf_file)
-        if convert_pdf_to_markdown(full_path, output_root):
-            success_count += 1
-            
-    print(f"\n處理完成！成功轉換 {success_count}/{len(pdf_files)} 個檔案。")
+    main()
