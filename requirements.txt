@@ -1,3 +1,2 @@
-PyMuPDF
-pymupdf4llm
-pillow
+mineru[all]
+onnxruntime-gpu
