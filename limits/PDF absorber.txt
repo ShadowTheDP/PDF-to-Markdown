@@ -1,0 +1,10 @@
+PDF absorber 限制：
+1. 程式編寫範圍僅限於相對路徑 ./Python-project/PDF-to-Markdown 下
+2. 輸出位置必須為相對路徑 ./Result-for-project/PDF-to-Markdown 下
+3. 每次專案更新後，必須在 ./Result-for-project/PDF-to-Markdown/ 下提供名為 "Changing Description.txt" 的變更描述文件，供 Git 管理員進行 Commit。
+4. 路徑基準：所有路徑以專案根目錄 c:\Users\user\Desktop\Code Project 為基準，採用相對路徑（./）。
+5. 檔案規範：UTF-8 編碼、CRLF 換行；禁止在檔案或資料夾名稱中使用空格，請使用連字符 (-) 代替；不得在指定目錄之外新增或修改檔案；不得讀寫專案外部路徑。建議輸入來源置於 ./Python-project/PDF-to-Markdown/input，暫存檔於 ./.cache。
+6. 相依限制：以現有相依為主；如需新增套件，先於 ./Python-project/PDF-to-Markdown/requirements.txt 說明，避免全域安裝。
+7. 輸出結構：Result 目錄下依原始檔名建立子資料夾，包含 Markdown 與資產（images）。
+8. 變更描述內容：需包含時間戳、處理檔案清單、轉換參數摘要與輸出路徑。
+9. 命令執行：非互動式、短時完成；避免長時間常駐或監聽程序。

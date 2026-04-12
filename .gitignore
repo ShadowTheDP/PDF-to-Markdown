@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+myenv/
+build/
+dist/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# MinerU / Magic-PDF output
+output/
+Result-for-project/
+
+# Large Files
+models/
+input/
+*.zip
+*.pdf
+*.jpg
+*.png
